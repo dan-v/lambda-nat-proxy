@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'QUIC NAT Traversal SOCKS5 Proxy Infrastructure'
+
+Parameters:
+  StackName:
+    Type: String
+    Default: 'quic-nat-proxy'
+    Description: 'Name for the stack (used in resource naming)'
+    AllowedPattern: '^[a-zA-Z][a-zA-Z0-9-]*$'
+    ConstraintDescription: 'Must start with a letter and contain only alphanumeric characters and hyphens'
+
+
+Resources:
+  # S3 Bucket for coordination between orchestrator and lambda
+  CoordinationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${StackName}-coordination-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldCoordinationFiles
+            Status: Enabled
+            ExpirationInDays: 1
+            Prefix: 'coordination/'
+          - Id: DeleteOldResponseFiles
+            Status: Enabled
+            ExpirationInDays: 1
+            Prefix: 'punch-response/'
+      Tags:
+        - Key: Project
+          Value: 'lambda-nat-proxy'
+        - Key: Component  
+          Value: 'coordination-bucket'
+        - Key: ManagedBy
+          Value: 'CloudFormation'
+        - Key: Environment
+          Value: 'production'
+        - Key: CostCenter
+          Value: 'lambda-nat-proxy'
+        - Key: Owner
+          Value: 'lambda-nat-proxy-cli'
+
+  # IAM Role for Lambda Function
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${StackName}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3AccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub '${CoordinationBucket.Arn}/*'
+      Tags:
+        - Key: Project
+          Value: 'lambda-nat-proxy'
+        - Key: Component
+          Value: 'lambda-execution-role'
+        - Key: ManagedBy
+          Value: 'CloudFormation'
+        - Key: Environment
+          Value: 'production'
+        - Key: CostCenter
+          Value: 'lambda-nat-proxy'
+        - Key: Owner
+          Value: 'lambda-nat-proxy-cli'
+
+  # Note: Lambda function, permissions, and S3 notifications will be configured via SDK
+  # This allows us to deploy the lambda as a zip file without S3 intermediate storage
+
+Outputs:
+  StackName:
+    Description: 'CloudFormation Stack Name'
+    Value: !Ref 'AWS::StackName'
+    Export:
+      Name: !Sub '${AWS::StackName}-StackName'
+
+
+  CoordinationBucketName:
+    Description: 'S3 bucket name for coordination'
+    Value: !Ref CoordinationBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-CoordinationBucket'
+
+  CoordinationBucketArn:
+    Description: 'S3 bucket ARN for coordination'
+    Value: !GetAtt CoordinationBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-CoordinationBucketArn'
+
+  LambdaExecutionRoleArn:
+    Description: 'Lambda execution role ARN'
+    Value: !GetAtt LambdaExecutionRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaExecutionRoleArn'
+
+  LambdaExecutionRoleName:
+    Description: 'Lambda execution role name'
+    Value: !Ref LambdaExecutionRole
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaExecutionRoleName'
+
+  LambdaFunctionName:
+    Description: 'Expected Lambda function name (for SDK deployment)'
+    Value: !Sub '${StackName}-lambda'
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaFunctionName'
+
+  Region:
+    Description: 'AWS Region'
+    Value: !Ref 'AWS::Region'
+    Export:
+      Name: !Sub '${AWS::StackName}-Region'

@@ -1,0 +1,45 @@
+# Docker ignore file for faster builds
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.so
+*.dylib
+
+# Temporary files
+.tmp/
+tmp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+
+# Test files
+*_test.go
+test/
+
+# Node modules (we'll install fresh)
+web/node_modules/
+web/dist/
+
+# Go build cache
+.cache/

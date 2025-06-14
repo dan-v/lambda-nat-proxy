@@ -1,0 +1,66 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+
+# Go module downloads
+vendor/
+
+# Build directory
+build/
+
+# Embedded assets (generated during build)
+cmd/lambda-nat-proxy/assets/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# AWS credentials (should never be committed)
+.aws/
+aws-config
+
+# Temporary files
+tmp/
+temp/
+
+# Built binary
+lambda-proxy
+
+# Node modules and build outputs  
+web/node_modules/
+web/dist/
+
+# Embedded web assets (generated during build)
+internal/dashboard/web/
