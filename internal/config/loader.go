@@ -15,22 +15,47 @@ func LoadCLIConfig(configPath string) (*CLIConfig, error) {
 	
 	// Initialize viper
 	v := viper.New()
-	v.SetConfigName("lambda-nat-proxy")
 	v.SetConfigType("yaml")
 	
-	// Add search paths
+	// Determine config file to use
+	var foundConfig bool
 	if configPath != "" {
 		// Use specific config file path if provided
 		v.SetConfigFile(configPath)
+		foundConfig = true
 	} else {
-		// Search in XDG-compliant locations
-		v.AddConfigPath(".")                                                    // Current directory
-		v.AddConfigPath(filepath.Join(xdg.ConfigHome, "lambda-nat-proxy"))      // User config (~/.config/lambda-nat-proxy)
-		v.AddConfigPath("/etc/lambda-nat-proxy")                               // System directory
+		// Search for specific config files (not just any file named lambda-nat-proxy)
+		configFiles := []string{
+			"./lambda-nat-proxy.yaml",                                           // Current directory
+			"./lambda-nat-proxy.yml",                                            // Current directory (alt extension)
+			filepath.Join(xdg.ConfigHome, "lambda-nat-proxy", "lambda-nat-proxy.yaml"),      // User config
+			filepath.Join(xdg.ConfigHome, "lambda-nat-proxy", "lambda-nat-proxy.yml"),       // User config (alt)
+			"/etc/lambda-nat-proxy/lambda-nat-proxy.yaml",                      // System directory
+			"/etc/lambda-nat-proxy/lambda-nat-proxy.yml",                       // System directory (alt)
+		}
 		
 		// Also check XDG config dirs
 		for _, dir := range xdg.ConfigDirs {
-			v.AddConfigPath(filepath.Join(dir, "lambda-nat-proxy"))
+			configFiles = append(configFiles,
+				filepath.Join(dir, "lambda-nat-proxy", "lambda-nat-proxy.yaml"),
+				filepath.Join(dir, "lambda-nat-proxy", "lambda-nat-proxy.yml"),
+			)
+		}
+		
+		// Find the first existing config file
+		for _, configFile := range configFiles {
+			if _, err := os.Stat(configFile); err == nil {
+				v.SetConfigFile(configFile)
+				foundConfig = true
+				break
+			}
+		}
+	}
+	
+	// Try to read config file (only if one was found)
+	if foundConfig {
+		if err := v.ReadInConfig(); err != nil {
+			return nil, fmt.Errorf("error reading config file: %w", err)
 		}
 	}
 	
@@ -43,15 +68,6 @@ func LoadCLIConfig(configPath string) (*CLIConfig, error) {
 	v.BindEnv("aws.profile", "AWS_PROFILE")
 	v.BindEnv("deployment.mode", "MODE")
 	v.BindEnv("proxy.port", "SOCKS5_PORT")
-	
-	// Try to read config file
-	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			// Config file was found but another error was produced
-			return nil, fmt.Errorf("error reading config file: %w", err)
-		}
-		// Config file not found, continue with defaults and env vars
-	}
 	
 	// Unmarshal into our config struct
 	if err := v.Unmarshal(cfg); err != nil {
