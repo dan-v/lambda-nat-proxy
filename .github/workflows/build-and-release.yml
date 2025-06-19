@@ -112,14 +112,11 @@ jobs:
         run: |
           mkdir -p build
           CGO_ENABLED=0 go build -a -installsuffix cgo -o build/lambda-nat-proxy ./cmd/lambda-nat-proxy
-          
-          # Copy bootstrap to build directory
-          cp cmd/lambda-nat-proxy/assets/bootstrap build/
 
       - name: Create archive
         run: |
           cd build
-          tar -czf lambda-nat-proxy-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz lambda-nat-proxy bootstrap
+          tar -czf lambda-nat-proxy-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz lambda-nat-proxy
           mv lambda-nat-proxy-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz ../
 
       - name: Upload build artifact
